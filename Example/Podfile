@@ -1,0 +1,13 @@
+use_frameworks!
+
+platform :ios, '10.0'
+
+target 'MMTToolForNordicTool_Example' do
+  pod 'MMTToolForNordicTool', :path => '../'
+
+  target 'MMTToolForNordicTool_Tests' do
+    inherit! :search_paths
+
+    
+  end
+end
