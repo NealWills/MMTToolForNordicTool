@@ -291,11 +291,13 @@
 			);
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-MMTToolForNordicTool_Example/Pods-MMTToolForNordicTool_Example-frameworks.sh",
+				"${BUILT_PRODUCTS_DIR}/MMTToolForGoodixDFU/MMTToolForGoodixDFU.framework",
 				"${BUILT_PRODUCTS_DIR}/MMTToolForNordicTool/MMTToolForNordicTool.framework",
 				"${BUILT_PRODUCTS_DIR}/ZIPFoundation/ZIPFoundation.framework",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/MMTToolForGoodixDFU.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/MMTToolForNordicTool.framework",
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ZIPFoundation.framework",
 			);

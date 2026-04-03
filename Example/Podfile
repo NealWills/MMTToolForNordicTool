@@ -1,11 +1,12 @@
 use_frameworks!
 
-platform :ios, '10.0'
+platform :ios, '13.0'
 
 target 'MMTToolForNordicTool_Example' do
   pod 'MMTToolForNordicTool', :path => '../'
   
   pod 'ZIPFoundation'
+  pod 'MMTToolForGoodixDFU'
 
   target 'MMTToolForNordicTool_Tests' do
     inherit! :search_paths
