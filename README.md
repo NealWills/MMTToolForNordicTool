@@ -102,6 +102,274 @@ pod install
 - 服务扫描进度
 - 特性发现记录
 
+## 代码示例
+
+### ViewController 使用示例
+
+以下示例展示了如何使用 MMTToolForNordicTool 库实现完整的蓝牙设备扫描、连接和 DFU 升级功能：
+
+#### 1. 配置 DFU 工具
+
+```swift
+import MMTToolForNordicTool
+
+class ViewController: UIViewController {
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // 配置 DFU 管理器
+        MMTToolForNordicDFUTool.configManager()
+        
+        // 添加 DFU 代理
+        MMTToolForNordicDFUTool.addDelegate(self)
+        
+        // 配置日志系统
+        MMTToolForNordicLog.configure { config in
+            config.minimumLevel = .debug
+            config.enableConsole = true
+            config.cacheEnabled = true
+            config.cacheLimit = 500
+            config.enableColors = true
+        }
+        
+        // 设置自定义日志处理器
+        MMTToolForNordicLog.setCustomHandler { [weak self] entry in
+            DispatchQueue.main.async {
+                self?.addLogToUI(entry.simplifiedMessage)
+            }
+        }
+    }
+    
+    deinit {
+        // 移除代理
+        MMTToolForNordicDFUTool.removeDelegate(self)
+    }
+}
+```
+
+#### 2. 蓝牙设备扫描
+
+```swift
+extension ViewController: CBCentralManagerDelegate {
+    
+    /// 开始扫描蓝牙设备
+    private func startScanning() {
+        guard centralManager.state == .poweredOn else {
+            updateStatus("蓝牙未开启")
+            return
+        }
+        
+        // 清空旧数据
+        discoveredDevices.removeAll()
+        deviceMACMap.removeAll()
+        deviceNameMap.removeAll()
+        deviceRSSIMap.removeAll()
+        macToDeviceMap.removeAll()
+        
+        // 开始扫描
+        centralManager.scanForPeripherals(withServices: nil, options: [
+            CBCentralManagerScanOptionAllowDuplicatesKey: false
+        ])
+    }
+    
+    /// 发现设备回调
+    func centralManager(_ central: CBCentralManager, 
+                       didDiscover peripheral: CBPeripheral,
+                       advertisementData: [String: Any], 
+                       rssi RSSI: NSNumber) {
+        
+        // 提取设备名称
+        let localName = peripheral.name ?? ""
+        let peripheralName = advertisementData["kCBAdvDataLocalName"] as? String ?? localName
+        
+        // 提取 MAC 地址
+        var mac: String?
+        var macExtra: String?
+        if let macData = advertisementData["kCBAdvDataManufacturerData"] as? Data {
+            let macList = macData.map({ String(format: "%02x", $0).uppercased() })
+            mac = macList[0..<6].joined(separator: ":")
+            if macList.count > 6 {
+                macExtra = macList[6..<macList.count].joined(separator: ":")
+            }
+        }
+        
+        // 根据 MAC 地址去重，保留 RSSI 最高的设备
+        if let macAddress = mac {
+            if let existingDeviceId = macToDeviceMap[macAddress] {
+                if let existingRSSI = deviceRSSIMap[existingDeviceId] {
+                    if RSSI.intValue > existingRSSI.intValue {
+                        // 替换为信号更强的设备
+                        updateDevice(peripheral, macAddress, macExtra, peripheralName, RSSI)
+                    }
+                }
+            } else {
+                // 添加新设备
+                addDevice(peripheral, macAddress, macExtra, peripheralName, RSSI)
+            }
+        }
+    }
+}
+```
+
+#### 3. 设备连接和服务扫描
+
+```swift
+extension ViewController {
+    
+    /// 连接设备
+    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
+        isConnected = true
+        peripheral.delegate = self
+        
+        // 自动扫描服务和特性
+        peripheral.discoverServices(nil)
+    }
+}
+
+extension ViewController: CBPeripheralDelegate {
+    
+    /// 发现服务回调
+    func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
+        guard let services = peripheral.services else { return }
+        discoveredServices = services
+        
+        // 扫描每个服务的特性
+        for service in services {
+            peripheral.discoverCharacteristics(nil, for: service)
+        }
+    }
+    
+    /// 发现特性回调
+    func peripheral(_ peripheral: CBPeripheral, 
+                   didDiscoverCharacteristicsFor service: CBService, 
+                   error: Error?) {
+        guard let characteristics = service.characteristics else { return }
+        
+        // 存储特性
+        serviceCharacteristicsMap[service.uuid] = characteristics
+        
+        // 订阅通知
+        for characteristic in characteristics {
+            peripheral.setNotifyValue(true, for: characteristic)
+        }
+    }
+}
+```
+
+#### 4. DFU 升级实现
+
+```swift
+extension ViewController {
+    
+    /// 启动 DFU 升级
+    private func startDFUUpgrade() {
+        guard let device = selectedDevice,
+              let firmwareURL = selectedFirmwareURL,
+              isConnected else {
+            return
+        }
+        
+        let deviceUUID = device.identifier.uuidString
+        let macInfo = deviceMACMap[device.identifier]
+        let deviceMac = macInfo?.mac ?? ""
+        let deviceMacExtra = macInfo?.macExtra ?? ""
+        let filePath = firmwareURL.path
+        let startAddress = "01080000"  // 起始地址
+        
+        // 启动 DFU 升级
+        MMTToolForNordicDFUTool.startDfu(
+            deviceUUID: deviceUUID,
+            deviceMac: deviceMac,
+            deviceMacExtra: deviceMacExtra,
+            peripheral: device,
+            startAddress: startAddress,
+            filePath: filePath
+        )
+    }
+}
+
+// MARK: - DFU 代理实现
+extension ViewController: MMTToolForNordicDFUDelegate {
+    
+    /// DFU 模式进入成功
+    func mmtToolForNordicUnitDidEnter(_ unit: MMTToolForNordicDFUToolUnit?) {
+        print("✅ DFU Unit 进入成功")
+        updateStatus("DFU 模式准备就绪")
+    }
+    
+    /// DFU 模式进入失败
+    func mmtToolForNordicUnitDidFailToEnter(_ unit: MMTToolForNordicDFUToolUnit?, error: Error?) {
+        print("❌ DFU Unit 进入失败: \(error?.localizedDescription ?? "")")
+        updateStatus("DFU 模式进入失败")
+    }
+    
+    /// DFU 升级开始
+    func mmtToolForNordicUnitDFUDidBegin(_ unit: MMTToolForNordicDFUToolUnit?) {
+        print("🚀 DFU 开始")
+        updateStatus("DFU 升级进行中...")
+    }
+    
+    /// DFU 进度变化
+    func mmtToolForNordicUnitDFUDidChangeProgress(_ unit: MMTToolForNordicDFUToolUnit?, progress: Int) {
+        print("📊 DFU 进度: \(progress)%")
+        updateStatus("DFU 进度: \(progress)%")
+    }
+    
+    /// DFU 完成
+    func mmtToolForNordicUnitDFUDidEnd(_ unit: MMTToolForNordicDFUToolUnit?, progress: Int?, error: Error?) {
+        if let error = error {
+            print("❌ DFU 失败: \(error.localizedDescription)")
+            updateStatus("DFU 失败: \(error.localizedDescription)")
+        } else {
+            print("✅ DFU 完成，进度: \(progress ?? 100)%")
+            updateStatus("DFU 升级完成！")
+        }
+    }
+    
+    /// 获取 DFU 服务和特性
+    func mmtToolForNordicUnitGetUUID(_ unit: MMTToolForNordicDFUToolUnit?) -> MMTToolForNordicDFUDelegate.DFUServerTurple? {
+        guard let device = selectedDevice else { return nil }
+        
+        // 遍历已发现的服务
+        for service in discoveredServices {
+            guard let characteristics = serviceCharacteristicsMap[service.uuid] else {
+                continue
+            }
+            
+            // 查找 DFU 相关特性
+            var readCharacter: CBCharacteristic?
+            var writeCharacter: CBCharacteristic?
+            var controlCharacter: CBCharacteristic?
+            
+            for char in characteristics {
+                let charUUID = char.uuid.uuidString.uppercased()
+                
+                // 根据 UUID 匹配 DFU 特性
+                if charUUID.contains("8EC9") || charUUID.contains("0001") {
+                    controlCharacter = char
+                } else if charUUID.contains("0002") {
+                    writeCharacter = char
+                } else if charUUID.contains("0003") {
+                    readCharacter = char
+                }
+            }
+            
+            if readCharacter != nil || writeCharacter != nil || controlCharacter != nil {
+                return (service, readCharacter, writeCharacter, controlCharacter)
+            }
+        }
+        
+        return nil
+    }
+    
+    /// 获取当前选中的设备
+    func mmtToolForNordicUnitGetPeripheral(_ unit: MMTToolForNordicDFUToolUnit?) -> CBPeripheral? {
+        return selectedDevice
+    }
+}
+```
+
 ## 技术实现
 
 ### 设备信息提取
