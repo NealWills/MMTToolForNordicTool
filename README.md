@@ -461,7 +461,7 @@ MMTToolForNordicTool/
 
 ## Author
 
-NealWills, Donghn@maxeye.com
+NealWills, aoiiiiyuki@outlook.com
 
 ## License
 
