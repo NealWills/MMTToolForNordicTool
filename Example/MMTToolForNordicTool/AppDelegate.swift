@@ -15,14 +15,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplicationLaunchOptionsKey: Any]?) -> Bool {
-        // 创建窗口
+        // Create window
         window = UIWindow(frame: UIScreen.main.bounds)
 
-        // 创建根视图控制器
+        // Create root view controller
         let viewController = ViewController()
         let navigationController = UINavigationController(rootViewController: viewController)
 
-        // 设置根视图控制器
+        // Set root view controller
         window?.rootViewController = navigationController
         window?.makeKeyAndVisible()
 

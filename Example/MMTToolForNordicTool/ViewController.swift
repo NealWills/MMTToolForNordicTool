@@ -12,12 +12,12 @@ import MMTToolForNordicTool
 
 class ViewController: UIViewController {
 
-    // MARK: - UI 组件
+    // MARK: - UI Components
 
-    /// 扫描按钮 - 用于开始/停止扫描蓝牙设备
+    /// Scan button - Used to start/stop scanning Bluetooth devices
     private lazy var scanButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("开始扫描", for: .normal)
+        button.setTitle("Start Scan", for: .normal)
         button.backgroundColor = .systemBlue
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 8
@@ -26,7 +26,7 @@ class ViewController: UIViewController {
         return button
     }()
 
-    /// 设备列表表格 - 展示扫描到的蓝牙设备
+    /// Device list table - Displays scanned Bluetooth devices
     private lazy var deviceTableView: UITableView = {
         let tableView = UITableView()
         tableView.delegate = self
@@ -38,17 +38,17 @@ class ViewController: UIViewController {
         return tableView
     }()
 
-    /// 状态标签 - 显示当前操作状态
+    /// Status label - Displays current operation status
     private lazy var statusLabel: UILabel = {
         let label = UILabel()
-        label.text = "准备就绪"
+        label.text = "Ready"
         label.textAlignment = .center
         label.textColor = .darkGray
         label.font = UIFont.systemFont(ofSize: 14)
         return label
     }()
 
-    /// 选中设备信息容器视图
+    /// Selected device info container view
     private lazy var selectedDeviceView: UIView = {
         let view = UIView()
         view.backgroundColor = .secondarySystemBackground
@@ -57,7 +57,7 @@ class ViewController: UIViewController {
         return view
     }()
 
-    /// 选中设备名称标签
+    /// Selected device name label
     private lazy var selectedDeviceNameLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 18, weight: .bold)
@@ -65,7 +65,7 @@ class ViewController: UIViewController {
         return label
     }()
 
-    /// 选中设备MAC地址标签
+    /// Selected device MAC address label
     private lazy var selectedMACLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
@@ -73,7 +73,7 @@ class ViewController: UIViewController {
         return label
     }()
 
-    /// 连接状态标签 - 显示"已连接"或"未连接"
+    /// Connection status label - Displays "Connected" or "Disconnected"
     private lazy var connectionStatusLabel: UILabel = {
         let label = UILabel()
         label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
@@ -81,10 +81,10 @@ class ViewController: UIViewController {
         return label
     }()
 
-    /// 连接/断开按钮
+    /// Connect/Disconnect button
     private lazy var connectButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("连接设备", for: .normal)
+        button.setTitle("Connect Device", for: .normal)
         button.backgroundColor = .systemGreen
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 8
@@ -95,10 +95,10 @@ class ViewController: UIViewController {
         return button
     }()
 
-    /// DFU升级按钮
+    /// DFU upgrade button
     private lazy var dfuButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("开始 DFU", for: .normal)
+        button.setTitle("Start DFU", for: .normal)
         button.backgroundColor = .systemOrange
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 8
@@ -109,9 +109,9 @@ class ViewController: UIViewController {
         return button
     }()
     
-    // MARK: - 指令日志容器
+    // MARK: - Command Log Container
 
-    /// 指令日志容器视图
+    /// Command log container view
     private lazy var commandContainerView: UIView = {
         let view = UIView()
         view.backgroundColor = .secondarySystemBackground
@@ -120,16 +120,16 @@ class ViewController: UIViewController {
         return view
     }()
 
-    /// 指令日志标题标签
+    /// Command log title label
     private lazy var commandTitleLabel: UILabel = {
         let label = UILabel()
-        label.text = "指令日志"
+        label.text = "Command Log"
         label.font = UIFont.systemFont(ofSize: 16, weight: .bold)
         label.textColor = .label
         return label
     }()
 
-    /// 指令日志文本视图 - 显示操作日志
+    /// Command log text view - Displays operation logs
     private lazy var commandTextView: UITextView = {
         let textView = UITextView()
         textView.font = UIFont.monospacedSystemFont(ofSize: 12, weight: .regular)
@@ -141,53 +141,53 @@ class ViewController: UIViewController {
         return textView
     }()
 
-    /// 清除日志按钮
+    /// Clear log button
     private lazy var clearLogButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("清除", for: .normal)
+        button.setTitle("Clear", for: .normal)
         button.titleLabel?.font = UIFont.systemFont(ofSize: 14, weight: .medium)
         button.addTarget(self, action: #selector(clearLogButtonTapped), for: .touchUpInside)
         return button
     }()
     
-    // MARK: - 属性
+    // MARK: - Properties
 
-    /// 蓝牙中心管理器
+    /// Bluetooth central manager
     private var centralManager: CBCentralManager!
 
-    /// 已发现的设备列表
+    /// Discovered devices list
     private var discoveredDevices: [CBPeripheral] = []
 
-    /// 设备MAC地址映射 - UUID -> (MAC地址, 额外数据)
+    /// Device MAC address mapping - UUID -> (MAC address, extra data)
     private var deviceMACMap: [UUID: (mac: String, macExtra: String?)] = [:]
 
-    /// 设备名称映射 - UUID -> 设备名称
+    /// Device name mapping - UUID -> Device name
     private var deviceNameMap: [UUID: String] = [:]
 
-    /// 设备RSSI信号强度映射 - UUID -> RSSI值
+    /// Device RSSI mapping - UUID -> RSSI value
     private var deviceRSSIMap: [UUID: NSNumber] = [:]
 
-    /// MAC到设备ID的映射，用于去重
+    /// MAC to device ID mapping for deduplication
     private var macToDeviceMap: [String: UUID] = [:]
 
-    /// 当前选中的设备
+    /// Currently selected device
     private var selectedDevice: CBPeripheral?
 
-    /// 是否已连接
+    /// Connection status
     private var isConnected: Bool = false
 
-    /// 已发现的服务列表
+    /// Discovered services list
     private var discoveredServices: [CBService] = []
 
-    /// 服务特性映射 - Service UUID -> Characteristics数组
+    /// Service characteristics mapping - Service UUID -> Characteristics array
     private var serviceCharacteristicsMap: [CBUUID: [CBCharacteristic]] = [:]
 
-    /// 选中的固件文件URL
+    /// Selected firmware file URL
     private var selectedFirmwareURL: URL?
 
-    // MARK: - 生命周期
+    // MARK: - Lifecycle
 
-    /// 视图加载完成
+    /// View did load
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -195,17 +195,17 @@ class ViewController: UIViewController {
         setupNavigationBar()
         setupLogger()
 
-        // 配置 DFU 工具
+        // Configure DFU tool
         MMTToolForNordicDFUTool.configManager()
     }
 
-    /// 视图即将消失
+    /// View will disappear
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         stopScanning()
     }
 
-    /// 析构函数
+    /// Deinitializer
     deinit {
         MMTToolForNordicDFUTool.removeDelegate(self)
     }
