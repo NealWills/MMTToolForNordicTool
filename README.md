@@ -1,5 +1,9 @@
 # MMTToolForNordicTool
 
+<p align="center">
+  <img src="./MMTToolForNordicDFU.png" alt="MMTToolForNordicTool" width="600">
+</p>
+
 [![CI Status](https://img.shields.io/travis/NealWills/MMTToolForNordicTool.svg?style=flat)](https://travis-ci.org/NealWills/MMTToolForNordicTool)
 [![Version](https://img.shields.io/cocoapods/v/MMTToolForNordicTool.svg?style=flat)](https://cocoapods.org/pods/MMTToolForNordicTool)
 [![License](https://img.shields.io/cocoapods/l/MMTToolForNordicTool.svg?style=flat)](https://cocoapods.org/pods/MMTToolForNordicTool)
