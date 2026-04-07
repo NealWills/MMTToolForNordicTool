@@ -2,6 +2,10 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>此应用需要使用蓝牙来扫描和连接附近的蓝牙设备，以便进行数据传输和设备控制。</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>此应用需要使用蓝牙来扫描和连接附近的蓝牙设备，以便进行数据传输和设备控制。</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleExecutable</key>
