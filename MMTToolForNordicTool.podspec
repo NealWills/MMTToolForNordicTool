@@ -8,17 +8,14 @@
 
 Pod::Spec.new do |s|
   s.name             = 'MMTToolForNordicTool'
-  s.version          = '0.1.0'
-  s.summary          = 'A short description of MMTToolForNordicTool.'
-
-# This description is used to generate tags and improve search results.
-#   * Think: What does it do? Why did you write it? What is the focus?
-#   * Try to keep it short, snappy and to the point.
-#   * Write the description between the DESC delimiters below.
-#   * Finally, don't worry about the indent, CocoaPods strips it!
+  s.version          = '1.0.0'
+  s.summary          = 'A Bluetooth tool library for Nordic chip devices with DFU support.'
 
   s.description      = <<-DESC
-TODO: Add long description of the pod here.
+MMTToolForNordicTool is a comprehensive Bluetooth tool library for Nordic chip devices. 
+It provides device scanning, connection management, and DFU (Device Firmware Update) functionality. 
+Features include MAC address extraction, RSSI signal strength sorting, service/characteristic scanning, 
+and complete DFU upgrade workflow support.
                        DESC
 
   s.homepage         = 'https://github.com/NealWills/MMTToolForNordicTool'
@@ -28,7 +25,8 @@ TODO: Add long description of the pod here.
   s.source           = { :git => 'https://github.com/NealWills/MMTToolForNordicTool.git', :tag => s.version.to_s }
   # s.social_media_url = 'https://twitter.com/<TWITTER_USERNAME>'
 
-  s.ios.deployment_target = '13.0'
+  s.ios.deployment_target = '12.0'
+  s.swift_version = '5.0'
 
   s.source_files = 'MMTToolForNordicTool/Classes/**/*'
   
@@ -37,10 +35,10 @@ TODO: Add long description of the pod here.
   # }
 
   # s.public_header_files = 'Pod/Classes/**/*.h'
-  # s.frameworks = 'UIKit', 'MapKit'
-  # s.dependency 'AFNetworking', '~> 2.3'
   
-  s.frameworks = 'CoreBluetooth'
-  s.dependency 'ZIPFoundation'
+  s.frameworks = 'CoreBluetooth', 'Foundation'
+  
+  s.dependency 'NordicDFU', '~> 4.15'
+  s.dependency 'ZIPFoundation', '~> 0.9'
   
 end
