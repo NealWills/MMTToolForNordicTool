@@ -95,10 +95,10 @@ class ViewController: UIViewController {
         return button
     }()
 
-    /// DFU升级按钮（预留功能）
+    /// DFU升级按钮
     private lazy var dfuButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("开始 DFU (预留)", for: .normal)
+        button.setTitle("开始 DFU", for: .normal)
         button.backgroundColor = .systemOrange
         button.setTitleColor(.white, for: .normal)
         button.layer.cornerRadius = 8
@@ -181,7 +181,10 @@ class ViewController: UIViewController {
 
     /// 服务特性映射 - Service UUID -> Characteristics数组
     private var serviceCharacteristicsMap: [CBUUID: [CBCharacteristic]] = [:]
-    
+
+    /// 选中的固件文件URL
+    private var selectedFirmwareURL: URL?
+
     // MARK: - 生命周期
 
     /// 视图加载完成
@@ -189,16 +192,21 @@ class ViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         setupBluetooth()
+        setupNavigationBar()
+        setupLogger()
 
         // 配置 DFU 工具
         MMTToolForNordicDFUTool.configManager()
-        MMTToolForNordicDFUTool.addDelegate(self)
     }
 
     /// 视图即将消失
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         stopScanning()
+    }
+
+    /// 析构函数
+    deinit {
         MMTToolForNordicDFUTool.removeDelegate(self)
     }
 
@@ -320,6 +328,63 @@ class ViewController: UIViewController {
         centralManager = CBCentralManager(delegate: self, queue: nil)
     }
 
+    /// 设置导航栏
+    private func setupNavigationBar() {
+        title = "Nordic 工具"
+
+        // 添加选择文件按钮
+        let selectFileButton = UIBarButtonItem(
+            title: "选择文件",
+            style: .plain,
+            target: self,
+            action: #selector(selectFileButtonTapped)
+        )
+        navigationItem.rightBarButtonItem = selectFileButton
+    }
+
+    /// 设置日志系统
+    private func setupLogger() {
+        // 配置 Nordic DFU 日志系统
+        MMTToolForNordicLog.configure { config in
+            // 设置最低日志级别
+            config.minimumLevel = .debug
+            
+            // 启用控制台输出
+            config.enableConsole = true
+            
+            // 启用日志缓存
+            config.cacheEnabled = true
+            config.cacheLimit = 500
+            
+            // 启用颜色输出
+            config.enableColors = true
+        }
+        
+        // 设置自定义日志处理器，将日志输出到 UI
+        MMTToolForNordicLog.setCustomHandler { [weak self] entry in
+            guard let self = self else { return }
+            
+            // 在主线程更新 UI
+            DispatchQueue.main.async {
+                // 使用简化的日志格式
+                let logMessage = entry.simplifiedMessage
+                self.addLogToUI(logMessage)
+            }
+        }
+    }
+    
+    /// 添加日志到 UI（内部方法）
+    private func addLogToUI(_ message: String) {
+        commandContainerView.isHidden = false
+        let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+        let logMessage = "[\(timestamp)] \(message)\n"
+        commandTextView.text += logMessage
+        
+        // 滚动到底部
+        let range = NSRange(location: commandTextView.text.count - 1, length: 1)
+        commandTextView.scrollRangeToVisible(range)
+    }
+
     // MARK: - 按钮动作
 
     /// 扫描按钮点击事件 - 开始/停止扫描
@@ -360,6 +425,18 @@ class ViewController: UIViewController {
     @objc private func clearLogButtonTapped() {
         commandTextView.text = ""
         commandContainerView.isHidden = true
+    }
+
+    /// 选择文件按钮点击事件
+    @objc private func selectFileButtonTapped() {
+        let documentPicker = UIDocumentPickerViewController(
+            documentTypes: ["public.data", "public.content"],
+            in: .import
+        )
+        documentPicker.delegate = self
+        documentPicker.allowsMultipleSelection = false
+        documentPicker.modalPresentationStyle = .formSheet
+        present(documentPicker, animated: true)
     }
 
     // MARK: - 蓝牙操作
@@ -408,16 +485,10 @@ class ViewController: UIViewController {
     }
 
     /// 添加日志到日志文本视图
+    /// 添加日志（便捷方法）
     private func addLog(_ message: String) {
-        DispatchQueue.main.async {
-            self.commandContainerView.isHidden = false
-            let timestamp = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-            let logMessage = "[\(timestamp)] \(message)\n"
-            self.commandTextView.text += logMessage
-            // 滚动到底部
-            let range = NSRange(location: self.commandTextView.text.count - 1, length: 1)
-            self.commandTextView.scrollRangeToVisible(range)
-        }
+        // 使用新的日志系统
+        MMTLogInfo(message)
     }
 
     /// 更新连接按钮状态和样式
@@ -436,8 +507,16 @@ class ViewController: UIViewController {
 
     /// 更新DFU按钮状态
     private func updateDFUButton(enabled: Bool) {
-        dfuButton.isEnabled = enabled
-        dfuButton.alpha = enabled ? 1.0 : 0.5
+        DispatchQueue.main.async {
+            self.dfuButton.isEnabled = enabled
+            self.dfuButton.alpha = enabled ? 1.0 : 0.5
+        }
+    }
+
+    /// 根据连接状态和文件选择状态更新 DFU 按钮
+    private func updateDFUButtonState() {
+        let shouldEnable = isConnected && selectedFirmwareURL != nil
+        updateDFUButton(enabled: shouldEnable)
     }
 
     /// 更新选中设备信息展示
@@ -487,16 +566,58 @@ class ViewController: UIViewController {
 
     /// 显示DFU功能预留提示弹窗
     private func showDFUAlert() {
-        guard let device = selectedDevice else { return }
+        // 检查是否已选择文件
+        guard let firmwareURL = selectedFirmwareURL else {
+            let alert = UIAlertController(
+                title: "提示",
+                message: "请先选择固件文件",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "确定", style: .default))
+            present(alert, animated: true)
+            return
+        }
+
+        // 检查是否已连接设备
+        guard let device = selectedDevice, isConnected else {
+            let alert = UIAlertController(
+                title: "提示",
+                message: "请先连接设备",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "确定", style: .default))
+            present(alert, animated: true)
+            return
+        }
+
+        // 获取设备信息
+        let deviceUUID = device.identifier.uuidString
         let macInfo = deviceMACMap[device.identifier]
-        let macString = macInfo?.mac ?? "未知"
-        let macExtra = macInfo?.macExtra.map { " | \($0)" } ?? ""
-        let name = deviceNameMap[device.identifier] ?? "未知"
+        let deviceMac = macInfo?.mac ?? ""
+        let deviceMacExtra = macInfo?.macExtra
+        let filePath = firmwareURL.path
 
-        let alert = UIAlertController(title: "DFU 功能", message: "此功能预留中\n\n当前选中设备：\n\(name)\n\nMAC地址：\(macString)\(macExtra)", preferredStyle: .alert)
+        // 起始地址
+        let startAddressStr = "01080000"
 
-        alert.addAction(UIAlertAction(title: "确定", style: .default))
-        present(alert, animated: true)
+        addLog("🚀 开始 DFU 升级")
+        addLog("设备: \(deviceNameMap[device.identifier] ?? "未知")")
+        addLog("MAC: \(deviceMac)")
+        addLog("文件: \(firmwareURL.lastPathComponent)")
+        updateStatus("DFU 升级中...")
+        
+        MMTToolForNordicDFUTool.addDelegate(self)
+        
+        // 启动 DFU 升级
+        MMTToolForNordicDFUTool.startDfu(
+            deviceUUID: deviceUUID,
+            deviceMac: deviceMac,
+            deviceMacExtra: deviceMacExtra,
+            peripheral: device,
+            startAddress: startAddressStr,
+            filePath: filePath
+        )
+        
     }
 
 }
@@ -601,7 +722,7 @@ extension ViewController: CBCentralManagerDelegate {
         let mac = deviceMACMap[peripheral.identifier]?.mac ?? "未知"
         updateStatus("已连接 \(name)")
         updateConnectButton(enabled: true, isConnected: true)
-        updateDFUButton(enabled: true)
+        updateDFUButtonState()
         updateSelectedDeviceInfo()
         addLog("✅ 连接成功: \(name) [\(mac)]")
 
@@ -625,10 +746,11 @@ extension ViewController: CBCentralManagerDelegate {
         discoveredServices.removeAll()
         serviceCharacteristicsMap.removeAll()
         updateConnectButton(enabled: true, isConnected: false)
-        updateDFUButton(enabled: false)
+        updateDFUButtonState()
         updateSelectedDeviceInfo()
     }
-    
+
+    /// 连接失败回调
     func centralManager(_ central: CBCentralManager, didFailToConnect peripheral: CBPeripheral, error: Error?) {
         if let error = error {
             updateStatus("连接失败：\(error.localizedDescription)")
@@ -636,6 +758,7 @@ extension ViewController: CBCentralManagerDelegate {
             updateStatus("连接失败")
         }
         updateConnectButton(enabled: true, isConnected: false)
+        updateDFUButtonState()
     }
 
 }
@@ -706,6 +829,7 @@ extension ViewController: MMTToolForNordicDFUDelegate {
     func mmtToolForNordicUnitDidFailToEnter(_ unit: MMTToolForNordicDFUToolUnit?, error: Error?) {
         print("❌ DFU Unit 进入失败: \(error?.localizedDescription ?? "未知错误")")
         updateStatus("DFU 模式进入失败")
+        MMTToolForNordicDFUTool.removeDelegate(self)
     }
 
     /// DFU升级开始回调
@@ -728,19 +852,92 @@ extension ViewController: MMTToolForNordicDFUDelegate {
         } else {
             print("✅ DFU 完成，进度: \(progress ?? 100)%")
             updateStatus("DFU 升级完成！进度: \(progress ?? 100)%")
+            MMTToolForNordicDFUTool.removeDelegate(self)
         }
         updateDFUButton(enabled: true)
+        MMTToolForNordicDFUTool.removeDelegate(self)
     }
 
     /// DFU错误信息回调
     func mmtToolForNordicUnitDidShowErrorMessage(_ unit: MMTToolForNordicDFUToolUnit?, stage: String?, error: Error?) {
         print("⚠️ DFU 阶段[\(stage ?? "")] 错误: \(error?.localizedDescription ?? "")")
         updateStatus("错误[\(stage ?? "")]: \(error?.localizedDescription ?? "未知错误")")
+        MMTToolForNordicDFUTool.removeDelegate(self)
     }
 
-    /// 获取自定义UUID（预留）
+    /// 获取自定义UUID - 返回 DFU 服务和特性
     func mmtToolForNordicUnitGetUUID(_ unit: MMTToolForNordicDFUToolUnit?) -> MMTToolForNordicDFUDelegate.DFUServerTurple? {
-        // TODO: 返回自定义的 Service 和 Characteristic UUID
+        guard let device = selectedDevice else {
+            addLog("❌ 获取 UUID 失败: 未选择设备")
+            return nil
+        }
+
+        // 遍历所有服务，查找 DFU 服务
+        for service in discoveredServices {
+            let serviceUUID = service.uuid.uuidString.uppercased()
+            addLog("检查服务: \(serviceUUID)")
+
+            // Nordic DFU Service 通常包含 FE59 或其他自定义 UUID
+            // 您需要根据实际设备的 DFU Service UUID 进行匹配
+            // 常见的 DFU Service UUID: 0000FE59-0000-1000-8000-00805F9B34FB
+
+            // 获取该服务的特性
+            guard let characteristics = serviceCharacteristicsMap[service.uuid],
+                  !characteristics.isEmpty else {
+                continue
+            }
+
+            addLog("  找到 \(characteristics.count) 个特性")
+
+            // 根据特性属性或 UUID 找到对应的特性
+            var readCharacter: CBCharacteristic?
+            var writeCharacter: CBCharacteristic?
+            var controlCharacter: CBCharacteristic?
+
+            for char in characteristics {
+                let charUUID = char.uuid.uuidString.uppercased()
+                let props = char.properties
+
+                addLog("    特性: \(charUUID)")
+                addLog("      属性: \(characteristicPropertiesDescription(props))")
+
+                // 方式1: 根据 UUID 匹配（推荐）
+                // Nordic DFU 常见特性 UUID:
+                // Control Point: 8EC90001-F315-4F60-9FB8-838830DAEA50
+                // Packet: 8EC90002-F315-4F60-9FB8-838830DAEA50
+                // Version: 8EC90003-F315-4F60-9FB8-838830DAEA50
+
+                if charUUID.contains("8EC9") || charUUID.contains("0001") {
+                    controlCharacter = char
+                    addLog("      → 控制特性")
+                } else if charUUID.contains("8EC9") || charUUID.contains("0002") {
+                    writeCharacter = char
+                    addLog("      → 写特性")
+                } else if charUUID.contains("8EC9") || charUUID.contains("0003") {
+                    readCharacter = char
+                    addLog("      → 读特性")
+                }
+
+                // 方式2: 根据属性匹配（备用）
+                if controlCharacter == nil && props.contains(.write) && props.contains(.notify) {
+                    controlCharacter = char
+                }
+                if writeCharacter == nil && props.contains(.writeWithoutResponse) {
+                    writeCharacter = char
+                }
+                if readCharacter == nil && props.contains(.read) {
+                    readCharacter = char
+                }
+            }
+
+            // 如果找到了必要的特性，返回元组
+            if readCharacter != nil || writeCharacter != nil || controlCharacter != nil {
+                addLog("✅ 找到 DFU 服务: \(serviceUUID)")
+                return (service, readCharacter, writeCharacter, controlCharacter)
+            }
+        }
+
+        addLog("❌ 未找到 DFU 服务和特性")
         return nil
     }
 
@@ -959,5 +1156,35 @@ extension ViewController: CBPeripheralDelegate {
         if properties.contains(.indicateEncryptionRequired) { descriptions.append("IndicateEncrypt") }
         
         return descriptions.isEmpty ? "None" : descriptions.joined(separator: ", ")
+    }
+}
+
+// MARK: - UIDocumentPickerDelegate 文件选择代理
+
+extension ViewController: UIDocumentPickerDelegate {
+
+    /// 文件选择完成回调
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let url = urls.first else { return }
+
+        selectedFirmwareURL = url
+
+        // 获取文件信息
+        let fileName = url.lastPathComponent
+        let filePath = url.path
+
+        addLog("已选择文件: \(fileName)")
+        addLog("文件路径: \(filePath)")
+
+        // 更新状态
+        updateStatus("已选择固件文件: \(fileName)")
+
+        // 如果已连接设备，启用 DFU 按钮
+        updateDFUButtonState()
+    }
+
+    /// 文件选择取消回调
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        addLog("取消选择文件")
     }
 }

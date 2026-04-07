@@ -96,10 +96,34 @@ public class MMTToolForNordicDFUToolUnit: NSObject {
 
     ///    fileprivate var easyDfu2: EasyDfu2?
     fileprivate var initiator: DFUServiceInitiator?
+    
+    fileprivate var controller: DFUServiceController?
+    
+    fileprivate var selector: DFUServiceSelector?
 
     fileprivate var manager: CBCentralManager?
 
     fileprivate var peripheral: CBPeripheral?
+    
+    fileprivate lazy var queue: DispatchQueue = {
+        let queue = DispatchQueue(label: "com.mmt.nordic.queue")
+        return queue
+    }()
+    
+    fileprivate var delegateQueue: DispatchQueue = {
+        let delegateQueue = DispatchQueue(label: "com.mmt.nordic.delegateQueue")
+        return delegateQueue
+    }()
+    
+    fileprivate var progressQueue: DispatchQueue = {
+        let progressQueue = DispatchQueue(label: "com.mmt.nordic.progressQueue")
+        return progressQueue
+    }()
+    
+    fileprivate var loggerQueue: DispatchQueue = {
+        let loggerQueue = DispatchQueue(label: "com.mmt.nordic.loggerQueue")
+        return loggerQueue
+    }()
 
     var timer: Timer?
     var timerValidTimestamp: TimeInterval = 0
@@ -113,7 +137,10 @@ public class MMTToolForNordicDFUToolUnit: NSObject {
         writeCharacter = nil
         controlCharacter = nil
         initiator?.delegate = nil
-//        self.easyDfu2 = nil
+        initiator?.progressDelegate = nil
+        initiator = nil
+        controller = nil
+        selector = nil
 
         dfuStep01()
     }
@@ -121,7 +148,9 @@ public class MMTToolForNordicDFUToolUnit: NSObject {
     func destroyUnit() {
         manager?.delegate = nil
         manager = nil
-//        self.easyDfu2 = EasyDfu2.init()
+        initiator = nil
+        controller = nil
+        selector = nil
         destroyTimer()
     }
 
@@ -136,28 +165,28 @@ extension MMTToolForNordicDFUToolUnit {
 
     func dfuStep01() {
         dfuStage = .sendDFUEnter
-        guard let service = localPeripheral?.services?.first(where: {
-            $0.uuid.uuidString.uppercased() == self.localServiceUUID
-        }) else {
-            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU Device Service Not Exist")
-            resultBlock?(unitId, 0, error)
-            return
-        }
-        guard let controlCharacter = service.characteristics?.first(where: {
-            $0.uuid.uuidString.uppercased() == self.localControlCharacterUUID?.uppercased()
-        }) else {
-            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU Device ControlCharacter Not Exist")
-            resultBlock?(unitId, 0, error)
-            return
-        }
+//        guard let service = localPeripheral?.services?.first(where: {
+//            $0.uuid.uuidString.uppercased() == self.localServiceUUID
+//        }) else {
+//            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU Device Service Not Exist")
+//            resultBlock?(unitId, 0, error)
+//            return
+//        }
+//        guard let controlCharacter = service.characteristics?.first(where: {
+//            $0.uuid.uuidString.uppercased() == self.localControlCharacterUUID?.uppercased()
+//        }) else {
+//            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU Device ControlCharacter Not Exist")
+//            resultBlock?(unitId, 0, error)
+//            return
+//        }
 
-        guard let startAddressStr = startAddress,
-              let address = UInt32(startAddressStr, radix: 16)
-        else {
-            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "Start Address Not Exist")
-            resultBlock?(unitId, 0, error)
-            return
-        }
+//        guard let startAddressStr = startAddress,
+//              let address = UInt32(startAddressStr, radix: 16)
+//        else {
+//            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "Start Address Not Exist")
+//            resultBlock?(unitId, 0, error)
+//            return
+//        }
         guard let dfuFilePath = dfuFilePath else {
             let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU File Not Exist")
             resultBlock?(unitId, 0, error)
@@ -170,9 +199,10 @@ extension MMTToolForNordicDFUToolUnit {
             return
         }
 
-        stepBlock?(unitId, "Dfu step01 [0x44, 0x4f, 0x4f, 0x47] send")
+//        stepBlock?(unitId, "Dfu step01 [0x44, 0x4f, 0x4f, 0x47] send")
 
-        localPeripheral?.writeValue(Data([0x44, 0x4F, 0x4F, 0x47]), for: controlCharacter, type: .withoutResponse)
+        // 发送进入 DFU 模式的命令 nordic 不需要做这个
+//        localPeripheral?.writeValue(Data([0x44, 0x4F, 0x4F, 0x47]), for: controlCharacter, type: .withoutResponse)
 
         stepBlock?(unitId, "Dfu step01 stop scan")
         manager?.stopScan()
@@ -181,13 +211,36 @@ extension MMTToolForNordicDFUToolUnit {
 
         manager = CBCentralManager()
         manager?.delegate = self
-
-        dfuStage = .sendDFUEnter
-
-        DispatchQueue(label: "com.mmt.sdk.Nordic").asyncAfter(deadline: .now() + 1) {
-            self.stepBlock?(self.unitId, "Dfu step01 start scan")
-            self.manager?.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+            
+        guard let uuid = localPeripheral?.identifier else {
+            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU Device Not Exist")
+            resultBlock?(unitId, 0, error)
+            return
         }
+        
+        dfuStage = .sendDFUEnter
+        self.peripheral = localPeripheral
+        
+        self.dfuStep02()
+        
+//        let list = manager?.retrievePeripherals(withIdentifiers: [uuid])
+//        if (list?.count ?? 0) > 0 {
+//            
+//            dfuStage = .sendDFUEnter
+//            self.peripheral = localPeripheral
+//            self.dfuStep02()
+//        } else {
+//            
+//            dfuStage = .sendDFUEnter
+//                
+//            self.manager?.stopScan()
+//
+//            DispatchQueue(label: "com.mmt.sdk.Nordic").asyncAfter(deadline: .now() + 1) {
+//                self.stepBlock?(self.unitId, "Dfu step01 start scan")
+//                self.manager?.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
+//            }
+//        }
+
 
 //        device.writeData(data: [0x44, 0x4f, 0x4f, 0x47], character: controlCharacter, type: .withoutResponse)
 
@@ -231,43 +284,57 @@ extension MMTToolForNordicDFUToolUnit {
         }
 
         guard let peripheral = peripheral else {
-//            MMTToolForNordicDFUTool.sendDelegateUnitDFUDidEnd(self, error: MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU Device Not Found"))
-//            MMTToolForNordicDFUTool.share.unitList.append(self)
-
             let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU Device Not Found")
             resultBlock?(unitId, 0, error)
-
             return
         }
 
-        stepBlock?(unitId, "Dfu step02 init easy dfu2")
+        guard let manager = manager else {
+            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "Central Manager Not Exist")
+            resultBlock?(unitId, 0, error)
+            return
+        }
+
+        stepBlock?(unitId, "Dfu step02 init DFU initiator")
         dfuStage = .dfuStart
+        
+        guard let fireware = try? DFUFirmware(zipFile: fileData) else {
+            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU File Not Exist")
+            resultBlock?(unitId, 0, error)
+            return
+        }
+        
+        
+        // 使用已有的 centralManager 和 peripheral 初始化 DFU 服务启动器
+//        let initiator = DFUServiceInitiator(centralManager: manager, target: peripheral)
+        let initiator = DFUServiceInitiator
+            .init(
+                queue: queue,
+                delegateQueue: delegateQueue,
+                progressQueue: progressQueue,
+                loggerQueue: loggerQueue
+            )
+            .with(firmware: fireware)
+        initiator.delegate = self
+        initiator.progressDelegate = self
+        initiator.logger = self  // 设置日志代理
+        self.initiator = initiator
+        
+        guard let controller = initiator.start(target: peripheral) else {
+            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU File Not Exist")
+            resultBlock?(unitId, 0, error)
+            return
+        }
+        self.controller = controller
+        
+        // 创建 DFU 选择器并启动
+        let selector = DFUServiceSelector(initiator: initiator, controller: controller)
+        self.selector = selector
 
-//        self.easyDfu2 = EasyDfu2.init()
-//        self.easyDfu2?.setFastMode(isFastMode: false)
-//        self.easyDfu2?.setListener(listener: self)
-//        self.easyDfu2?.setReconnectScanFilter { [weak self] peripheral, advertisementData, rssi in
-//            if let macData = advertisementData["kCBAdvDataManufacturerData"] as? Data {
-//                let macList = macData.map({
-//                    return String.init(format: "%02x", $0).uppercased()
-//                })
-//                var mac = macList.joined(separator: ":")
-//                var macExtra: String?
-//                if macList.count > 6 {
-//                    mac = macList[0..<6].joined(separator: ":")
-//                    macExtra = macList[6..<macList.count].joined(separator: ":")
-//                }
-//                if mac.uppercased() == self?.deviceMac?.uppercased() {
-//                    return true
-//                }
-//                return false
-//            }
-//            return false
-//        }
+        stepBlock?(unitId, "Dfu step02 start DFU selector")
 
-        stepBlock?(unitId, "Dfu step02 dfu2 startDfuInCopyMode")
-
-//        self.easyDfu2?.startDfuInCopyMode(central: self.manager, target: peripheral, dfuData: fileData, copyAddr: address)
+        // 启动 DFU 升级流程
+        selector.start()
 
         currentProgress = 0
         stepBlock?(unitId, "Dfu step02 dfu2 start timer")
@@ -294,39 +361,32 @@ extension MMTToolForNordicDFUToolUnit {
         timer = nil
     }
 
-//    func dfuStep02(peripheral: CBPeripheral) {
-//
-//        if self.dfuStage != .sendDFUEnter {
-//            return
-//        }
-//
-//        guard let startAddressStr = self.startAddress,
-//              let address = UInt32(startAddressStr, radix:16)
-//        else {
-//            MMTToolForNordicDFUTool.sendDelegateUnitDFUDidEnd(self, error: MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "Start Address Not Exist"))
-    ////            MMTToolForNordicDFUTool.share.unitList.remove(self)
-//            return
-//        }
-//        guard let dfuFilePath = self.dfuFilePath else {
-//            MMTToolForNordicDFUTool.sendDelegateUnitDFUDidEnd(self, error: MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU File Not Exist"))
-    ////            MMTToolForNordicDFUTool.share.unitList.append(self)
-//            return
-//        }
-//        let url = URL.init(fileURLWithPath: dfuFilePath)
-//        guard let fileData = try? Data(contentsOf: url) else {
-//            MMTToolForNordicDFUTool.sendDelegateUnitDFUDidEnd(self, error: MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU File Not Exist"))
-    ////            MMTToolForNordicDFUTool.share.unitList.append(self)
-//            return
-//        }
-//
-//
-//        self.dfuStage = .dfuModeReady
-//
-//        self.easyDfu2 = EasyDfu2.init()
-//        self.easyDfu2?.setFastMode(isFastMode: false)
-//        self.easyDfu2?.setListener(listener: self)
-//        self.easyDfu2?.startDfuInCopyMode(central: nil, target: peripheral, dfuData: fileData, copyAddr: address)
-//    }
+}
+
+
+extension MMTToolForNordicDFUToolUnit: DFUProgressDelegate {
+    
+    /// DFU 进度变化回调
+    /// - Parameters:
+    ///   - part: 当前部分编号
+    ///   - totalParts: 总部分数
+    ///   - progress: 进度百分比 (0-100)
+    ///   - currentSpeedBytesPerSecond: 当前传输速度（字节/秒）
+    ///   - avgSpeedBytesPerSecond: 平均传输速度（字节/秒）
+    public func dfuProgressDidChange(for part: Int, outOf totalParts: Int, to progress: Int, currentSpeedBytesPerSecond: Double, avgSpeedBytesPerSecond: Double) {
+        // 更新当前进度
+        currentProgress = progress
+        
+        // 记录进度日志
+        MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU Progress: \(progress)%, Part: \(part)/\(totalParts), Speed: \(currentSpeedBytesPerSecond) B/s", level: .info)
+        
+        // 通过回调通知进度更新
+        progressBlock?(unitId, progress)
+        
+        // 更新时间戳，防止超时
+        timerValidTimestamp = Date().timeIntervalSince1970
+    }
+    
 }
 
 extension MMTToolForNordicDFUToolUnit: DFUServiceDelegate {
@@ -343,35 +403,69 @@ extension MMTToolForNordicDFUToolUnit: DFUServiceDelegate {
         // Service is connecting to the DFU target.
         // 正在连接
         case .connecting:
-            break
+            MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU State: Connecting", level: .info)
+            stepBlock?(unitId, "DFU State: Connecting")
+            dfuStage = .dfuModeReady
+            
         // DFU Service is initializing DFU operation.
         // 初始化中
         case .starting:
-            break
+            MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU State: Starting", level: .info)
+            stepBlock?(unitId, "DFU State: Starting")
+            
         // DFU Service is switching the device to DFU mode.
         // 切换到DFU模式
         case .enablingDfuMode:
-            break
+            MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU State: Enabling DFU Mode", level: .info)
+            stepBlock?(unitId, "DFU State: Enabling DFU Mode")
+            
         // DFU Service is uploading the firmware.
         // 上传中
         case .uploading:
-            break
+            MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU State: Uploading", level: .info)
+            stepBlock?(unitId, "DFU State: Uploading")
+            dfuStage = .dfuStart
+            
         // The DFU target is validating the firmware. This state occurs only in Legacy DFU.
         // 验证中
         case .validating:
-            break
+            MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU State: Validating", level: .info)
+            stepBlock?(unitId, "DFU State: Validating")
+            
         // The iDevice is disconnecting or waiting for disconnection.
         // 断开中
         case .disconnecting:
-            break
+            MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU State: Disconnecting", level: .info)
+            stepBlock?(unitId, "DFU State: Disconnecting")
+            
         // DFU operation is completed and successful.
         // 完成
         case .completed:
-            break
+            MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU State: Completed", level: .info)
+            stepBlock?(unitId, "DFU State: Completed")
+            dfuStage = .dfuSuccess
+            
+            self.currentProgress = 100
+            
+            // 销毁定时器
+            destroyTimer()
+            
+            // 通知 DFU 完成
+            resultBlock?(unitId, 100, nil)
+            
         // DFU operation was aborted.
         // 取消
         case .aborted:
-            break
+            MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU State: Aborted", level: .info)
+            stepBlock?(unitId, "DFU State: Aborted")
+            dfuStage = .dfuCancel
+            
+            // 销毁定时器
+            destroyTimer()
+            
+            // 通知 DFU 取消
+            let error = MMTToolForNordicDFUTool.createError(code: -1, localDescrip: "DFU was aborted")
+            resultBlock?(unitId, currentProgress, error)
         }
     }
 
@@ -388,7 +482,23 @@ extension MMTToolForNordicDFUToolUnit: DFUServiceDelegate {
      - parameter error:   The error code.
      - parameter message: Error description.
      */
-    @objc public func dfuError(_: DFUError, didOccurWithMessage _: String) {}
+    @objc public func dfuError(_ error: DFUError, didOccurWithMessage message: String) {
+        MMTToolForNordicLog.log("[MMTToolForNordicDFUToolUnit] DFU Error: \(error.rawValue) - \(message)", level: .error)
+        
+        dfuStage = .dfuFailure
+        
+        // 销毁定时器
+        destroyTimer()
+        
+        // 创建错误对象
+        let nsError = MMTToolForNordicDFUTool.createError(code: error.rawValue, localDescrip: message)
+        
+        // 通过错误消息回调通知
+        dfuErrorMsgBlock?(unitId, message, "DFU Error")
+        
+        // 通知 DFU 失败
+        resultBlock?(unitId, currentProgress, nsError)
+    }
 }
 
 extension MMTToolForNordicDFUToolUnit: CBCentralManagerDelegate {
@@ -431,5 +541,33 @@ extension MMTToolForNordicDFUToolUnit: CBCentralManagerDelegate {
                 dfuStep02()
             }
         }
+    }
+}
+
+// MARK: - LoggerDelegate
+
+extension MMTToolForNordicDFUToolUnit: LoggerDelegate {
+    
+    /// 日志输出回调
+    public func logWith(_ level: LogLevel, message: String) {
+        let levelString: String
+        switch level {
+        case .debug:
+            levelString = "DEBUG"
+        case .verbose:
+            levelString = "VERBOSE"
+        case .info:
+            levelString = "INFO"
+        case .application:
+            levelString = "APPLICATION"
+        case .warning:
+            levelString = "WARNING"
+        case .error:
+            levelString = "ERROR"
+        @unknown default:
+            levelString = "UNKNOWN"
+        }
+        
+        MMTToolForNordicLog.log("[Nordic DFU][\(levelString)] \(message)", level: .info)
     }
 }
