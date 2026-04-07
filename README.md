@@ -5,110 +5,110 @@
 [![License](https://img.shields.io/cocoapods/l/MMTToolForNordicTool.svg?style=flat)](https://cocoapods.org/pods/MMTToolForNordicTool)
 [![Platform](https://img.shields.io/cocoapods/p/MMTToolForNordicTool.svg?style=flat)](https://cocoapods.org/pods/MMTToolForNordicTool)
 
-## 简介
+## Introduction
 
-MMTToolForNordicTool 是一个用于 Nordic 芯片设备的蓝牙工具库，提供了设备扫描、连接、DFU 升级等功能。示例项目演示了完整的蓝牙设备管理流程。
+MMTToolForNordicTool is a Bluetooth tool library for Nordic chip devices, providing device scanning, connection, DFU upgrade and other functions. The example project demonstrates a complete Bluetooth device management workflow.
 
-## 功能特性
+## Features
 
-### 核心功能
+### Core Features
 
-- ✅ **蓝牙设备扫描**
-  - 扫描周边 BLE 设备
-  - 从广播数据提取设备名称、MAC 地址
-  - RSSI 信号强度实时显示
-  - 自动按信号强度排序
+- ✅ **Bluetooth Device Scanning**
+  - Scan nearby BLE devices
+  - Extract device name and MAC address from advertisement data
+  - Real-time RSSI signal strength display
+  - Automatic sorting by signal strength
 
-- ✅ **智能设备管理**
-  - MAC 地址去重（保留信号最强的设备）
-  - 设备信息卡片展示
-  - 连接状态实时更新
+- ✅ **Intelligent Device Management**
+  - MAC address deduplication (keeps the device with strongest signal)
+  - Device information card display
+  - Real-time connection status updates
 
-- ✅ **设备连接**
-  - 一键连接/断开
-  - 自动扫描服务和特性
-  - 特性属性解析（Read/Write/Notify 等）
+- ✅ **Device Connection**
+  - One-click connect/disconnect
+  - Automatic service and characteristic scanning
+  - Characteristic property parsing (Read/Write/Notify, etc.)
 
-- ✅ **指令日志**
-  - 实时操作日志记录
-  - 时间戳标记
-  - 支持清除日志
+- ✅ **Command Log**
+  - Real-time operation log recording
+  - Timestamp markers
+  - Support for clearing logs
 
-- ✅ **DFU 升级（预留）**
-  - Nordic DFU 升级支持
-  - 进度回调
-  - 错误处理
+- ✅ **DFU Upgrade (Reserved)**
+  - Nordic DFU upgrade support
+  - Progress callbacks
+  - Error handling
 
-### UI 特性
+### UI Features
 
-- 🎨 **暗黑模式完美适配**
-  - 自动适配系统外观模式
-  - 语义化颜色使用
+- 🎨 **Perfect Dark Mode Support**
+  - Automatic adaptation to system appearance mode
+  - Semantic color usage
 
-- 📱 **现代化界面**
-  - 卡片式设计
-  - 圆角按钮和容器
-  - 响应式布局
+- 📱 **Modern Interface**
+  - Card-style design
+  - Rounded buttons and containers
+  - Responsive layout
 
-## 示例项目
+## Example Project
 
-### 运行示例
+### Running the Example
 
-要运行示例项目，请执行以下步骤：
+To run the example project, follow these steps:
 
-1. 克隆仓库
+1. Clone the repository
 ```bash
 git clone https://github.com/NealWills/MMTToolForNordicTool.git
 ```
 
-2. 进入 Example 目录
+2. Navigate to the Example directory
 ```bash
 cd MMTToolForNordicTool/Example
 ```
 
-3. 安装依赖
+3. Install dependencies
 ```bash
 pod install
 ```
 
-4. 打开 `MMTToolForNordicTool.xcworkspace` 运行项目
+4. Open `MMTToolForNordicTool.xcworkspace` and run the project
 
-### 使用说明
+### Usage Guide
 
-#### 1. 扫描设备
+#### 1. Scan Devices
 
-点击"开始扫描"按钮，将自动扫描周边的蓝牙设备。设备列表会按 RSSI 信号强度从高到低排序。
+Click the "Start Scan" button to automatically scan nearby Bluetooth devices. The device list will be sorted by RSSI signal strength from high to low.
 
-#### 2. 选择设备
+#### 2. Select Device
 
-从列表中点击选择要连接的设备，设备信息卡片会显示选中设备的详细信息：
-- 设备名称
-- MAC 地址
-- Extra 数据（如有）
-- 连接状态
+Click to select a device from the list. The device information card will display detailed information about the selected device:
+- Device Name
+- MAC Address
+- Extra Data (if available)
+- Connection Status
 
-#### 3. 连接设备
+#### 3. Connect Device
 
-点击"连接设备"按钮连接选中的设备。连接成功后：
-- 按钮变为"断开连接"（红色）
-- 自动扫描设备的服务和特性
-- 日志区域显示扫描进度
+Click the "Connect Device" button to connect to the selected device. After successful connection:
+- Button changes to "Disconnect" (red)
+- Automatically scans device services and characteristics
+- Log area shows scanning progress
 
-#### 4. 查看日志
+#### 4. View Logs
 
-所有操作都会记录在指令日志区域，包括：
-- 扫描开始/停止
-- 设备连接/断开
-- 服务扫描进度
-- 特性发现记录
+All operations are recorded in the command log area, including:
+- Scan start/stop
+- Device connect/disconnect
+- Service scanning progress
+- Characteristic discovery records
 
-## 代码示例
+## Code Examples
 
-### ViewController 使用示例
+### ViewController Usage Example
 
-以下示例展示了如何使用 MMTToolForNordicTool 库实现完整的蓝牙设备扫描、连接和 DFU 升级功能：
+The following examples demonstrate how to use the MMTToolForNordicTool library to implement complete Bluetooth device scanning, connection, and DFU upgrade functionality:
 
-#### 1. 配置 DFU 工具
+#### 1. Configure DFU Tool
 
 ```swift
 import MMTToolForNordicTool
@@ -118,13 +118,13 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // 配置 DFU 管理器
+        // Configure DFU manager
         MMTToolForNordicDFUTool.configManager()
         
-        // 添加 DFU 代理
+        // Add DFU delegate
         MMTToolForNordicDFUTool.addDelegate(self)
         
-        // 配置日志系统
+        // Configure log system
         MMTToolForNordicLog.configure { config in
             config.minimumLevel = .debug
             config.enableConsole = true
@@ -133,7 +133,7 @@ class ViewController: UIViewController {
             config.enableColors = true
         }
         
-        // 设置自定义日志处理器
+        // Set custom log handler
         MMTToolForNordicLog.setCustomHandler { [weak self] entry in
             DispatchQueue.main.async {
                 self?.addLogToUI(entry.simplifiedMessage)
@@ -142,48 +142,48 @@ class ViewController: UIViewController {
     }
     
     deinit {
-        // 移除代理
+        // Remove delegate
         MMTToolForNordicDFUTool.removeDelegate(self)
     }
 }
 ```
 
-#### 2. 蓝牙设备扫描
+#### 2. Bluetooth Device Scanning
 
 ```swift
 extension ViewController: CBCentralManagerDelegate {
     
-    /// 开始扫描蓝牙设备
+    /// Start scanning for Bluetooth devices
     private func startScanning() {
         guard centralManager.state == .poweredOn else {
-            updateStatus("蓝牙未开启")
+            updateStatus("Bluetooth is not powered on")
             return
         }
         
-        // 清空旧数据
+        // Clear old data
         discoveredDevices.removeAll()
         deviceMACMap.removeAll()
         deviceNameMap.removeAll()
         deviceRSSIMap.removeAll()
         macToDeviceMap.removeAll()
         
-        // 开始扫描
+        // Start scanning
         centralManager.scanForPeripherals(withServices: nil, options: [
             CBCentralManagerScanOptionAllowDuplicatesKey: false
         ])
     }
     
-    /// 发现设备回调
+    /// Device discovery callback
     func centralManager(_ central: CBCentralManager, 
                        didDiscover peripheral: CBPeripheral,
                        advertisementData: [String: Any], 
                        rssi RSSI: NSNumber) {
         
-        // 提取设备名称
+        // Extract device name
         let localName = peripheral.name ?? ""
         let peripheralName = advertisementData["kCBAdvDataLocalName"] as? String ?? localName
         
-        // 提取 MAC 地址
+        // Extract MAC address
         var mac: String?
         var macExtra: String?
         if let macData = advertisementData["kCBAdvDataManufacturerData"] as? Data {
@@ -194,17 +194,17 @@ extension ViewController: CBCentralManagerDelegate {
             }
         }
         
-        // 根据 MAC 地址去重，保留 RSSI 最高的设备
+        // Deduplicate by MAC address, keep device with highest RSSI
         if let macAddress = mac {
             if let existingDeviceId = macToDeviceMap[macAddress] {
                 if let existingRSSI = deviceRSSIMap[existingDeviceId] {
                     if RSSI.intValue > existingRSSI.intValue {
-                        // 替换为信号更强的设备
+                        // Replace with device having stronger signal
                         updateDevice(peripheral, macAddress, macExtra, peripheralName, RSSI)
                     }
                 }
             } else {
-                // 添加新设备
+                // Add new device
                 addDevice(peripheral, macAddress, macExtra, peripheralName, RSSI)
             }
         }
@@ -212,44 +212,44 @@ extension ViewController: CBCentralManagerDelegate {
 }
 ```
 
-#### 3. 设备连接和服务扫描
+#### 3. Device Connection and Service Scanning
 
 ```swift
 extension ViewController {
     
-    /// 连接设备
+    /// Device connected
     func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
         isConnected = true
         peripheral.delegate = self
         
-        // 自动扫描服务和特性
+        // Automatically scan services and characteristics
         peripheral.discoverServices(nil)
     }
 }
 
 extension ViewController: CBPeripheralDelegate {
     
-    /// 发现服务回调
+    /// Services discovered callback
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard let services = peripheral.services else { return }
         discoveredServices = services
         
-        // 扫描每个服务的特性
+        // Scan characteristics for each service
         for service in services {
             peripheral.discoverCharacteristics(nil, for: service)
         }
     }
     
-    /// 发现特性回调
+    /// Characteristics discovered callback
     func peripheral(_ peripheral: CBPeripheral, 
                    didDiscoverCharacteristicsFor service: CBService, 
                    error: Error?) {
         guard let characteristics = service.characteristics else { return }
         
-        // 存储特性
+        // Store characteristics
         serviceCharacteristicsMap[service.uuid] = characteristics
         
-        // 订阅通知
+        // Subscribe to notifications
         for characteristic in characteristics {
             peripheral.setNotifyValue(true, for: characteristic)
         }
@@ -257,12 +257,12 @@ extension ViewController: CBPeripheralDelegate {
 }
 ```
 
-#### 4. DFU 升级实现
+#### 4. DFU Upgrade Implementation
 
 ```swift
 extension ViewController {
     
-    /// 启动 DFU 升级
+    /// Start DFU upgrade
     private func startDFUUpgrade() {
         guard let device = selectedDevice,
               let firmwareURL = selectedFirmwareURL,
@@ -275,9 +275,9 @@ extension ViewController {
         let deviceMac = macInfo?.mac ?? ""
         let deviceMacExtra = macInfo?.macExtra ?? ""
         let filePath = firmwareURL.path
-        let startAddress = "01080000"  // 起始地址
+        let startAddress = "01080000"  // Start address
         
-        // 启动 DFU 升级
+        // Start DFU upgrade
         MMTToolForNordicDFUTool.startDfu(
             deviceUUID: deviceUUID,
             deviceMac: deviceMac,
@@ -289,55 +289,55 @@ extension ViewController {
     }
 }
 
-// MARK: - DFU 代理实现
+// MARK: - DFU Delegate Implementation
 extension ViewController: MMTToolForNordicDFUDelegate {
     
-    /// DFU 模式进入成功
+    /// DFU mode entered successfully
     func mmtToolForNordicUnitDidEnter(_ unit: MMTToolForNordicDFUToolUnit?) {
-        print("✅ DFU Unit 进入成功")
-        updateStatus("DFU 模式准备就绪")
+        print("✅ DFU Unit entered successfully")
+        updateStatus("DFU mode ready")
     }
     
-    /// DFU 模式进入失败
+    /// DFU mode entry failed
     func mmtToolForNordicUnitDidFailToEnter(_ unit: MMTToolForNordicDFUToolUnit?, error: Error?) {
-        print("❌ DFU Unit 进入失败: \(error?.localizedDescription ?? "")")
-        updateStatus("DFU 模式进入失败")
+        print("❌ DFU Unit entry failed: \(error?.localizedDescription ?? "")")
+        updateStatus("DFU mode entry failed")
     }
     
-    /// DFU 升级开始
+    /// DFU upgrade started
     func mmtToolForNordicUnitDFUDidBegin(_ unit: MMTToolForNordicDFUToolUnit?) {
-        print("🚀 DFU 开始")
-        updateStatus("DFU 升级进行中...")
+        print("🚀 DFU started")
+        updateStatus("DFU upgrade in progress...")
     }
     
-    /// DFU 进度变化
+    /// DFU progress changed
     func mmtToolForNordicUnitDFUDidChangeProgress(_ unit: MMTToolForNordicDFUToolUnit?, progress: Int) {
-        print("📊 DFU 进度: \(progress)%")
-        updateStatus("DFU 进度: \(progress)%")
+        print("📊 DFU progress: \(progress)%")
+        updateStatus("DFU progress: \(progress)%")
     }
     
-    /// DFU 完成
+    /// DFU completed
     func mmtToolForNordicUnitDFUDidEnd(_ unit: MMTToolForNordicDFUToolUnit?, progress: Int?, error: Error?) {
         if let error = error {
-            print("❌ DFU 失败: \(error.localizedDescription)")
-            updateStatus("DFU 失败: \(error.localizedDescription)")
+            print("❌ DFU failed: \(error.localizedDescription)")
+            updateStatus("DFU failed: \(error.localizedDescription)")
         } else {
-            print("✅ DFU 完成，进度: \(progress ?? 100)%")
-            updateStatus("DFU 升级完成！")
+            print("✅ DFU completed, progress: \(progress ?? 100)%")
+            updateStatus("DFU upgrade completed!")
         }
     }
     
-    /// 获取 DFU 服务和特性
+    /// Get DFU service and characteristics
     func mmtToolForNordicUnitGetUUID(_ unit: MMTToolForNordicDFUToolUnit?) -> MMTToolForNordicDFUDelegate.DFUServerTurple? {
         guard let device = selectedDevice else { return nil }
         
-        // 遍历已发现的服务
+        // Iterate through discovered services
         for service in discoveredServices {
             guard let characteristics = serviceCharacteristicsMap[service.uuid] else {
                 continue
             }
             
-            // 查找 DFU 相关特性
+            // Find DFU related characteristics
             var readCharacter: CBCharacteristic?
             var writeCharacter: CBCharacteristic?
             var controlCharacter: CBCharacteristic?
@@ -345,7 +345,7 @@ extension ViewController: MMTToolForNordicDFUDelegate {
             for char in characteristics {
                 let charUUID = char.uuid.uuidString.uppercased()
                 
-                // 根据 UUID 匹配 DFU 特性
+                // Match DFU characteristics by UUID
                 if charUUID.contains("8EC9") || charUUID.contains("0001") {
                     controlCharacter = char
                 } else if charUUID.contains("0002") {
@@ -363,102 +363,102 @@ extension ViewController: MMTToolForNordicDFUDelegate {
         return nil
     }
     
-    /// 获取当前选中的设备
+    /// Get currently selected device
     func mmtToolForNordicUnitGetPeripheral(_ unit: MMTToolForNordicDFUToolUnit?) -> CBPeripheral? {
         return selectedDevice
     }
 }
 ```
 
-## 技术实现
+## Technical Implementation
 
-### 设备信息提取
+### Device Information Extraction
 
 ```swift
-// 从广播数据提取设备名称（优先使用 kCBAdvDataLocalName）
+// Extract device name from advertisement data (prefer kCBAdvDataLocalName)
 let peripheralName = advertisementData["kCBAdvDataLocalName"] as? String ?? peripheral.name ?? ""
 
-// 从厂商数据提取 MAC 地址
+// Extract MAC address from manufacturer data
 if let macData = advertisementData["kCBAdvDataManufacturerData"] as? Data {
     let macList = macData.map({ String(format: "%02x", $0).uppercased() })
     let mac = macList[0..<6].joined(separator: ":")
 }
 ```
 
-### RSSI 信号强度指示
+### RSSI Signal Strength Indication
 
-| RSSI 范围 | 颜色 | 信号强度 |
+| RSSI Range | Color | Signal Strength |
 |-----------|------|---------|
-| ≥ -60 dBm | 🟢 绿色 | 强 |
-| -60 ~ -80 dBm | 🟠 橙色 | 中 |
-| < -80 dBm | 🔴 红色 | 弱 |
+| ≥ -60 dBm | 🟢 Green | Strong |
+| -60 ~ -80 dBm | 🟠 Orange | Medium |
+| < -80 dBm | 🔴 Red | Weak |
 
-### 服务特性扫描
+### Service Characteristic Scanning
 
-连接成功后自动扫描所有服务和特性，并解析特性属性：
-- Read - 可读
-- Write - 可写
-- WriteWithoutResponse - 无响应写入
-- Notify - 通知
-- Indicate - 指示
-- Broadcast - 广播
+After successful connection, automatically scans all services and characteristics, and parses characteristic properties:
+- Read - Readable
+- Write - Writable
+- WriteWithoutResponse - Write without response
+- Notify - Notification
+- Indicate - Indication
+- Broadcast - Broadcast
 
-## 系统要求
+## System Requirements
 
 - iOS 12.0+
 - Xcode 12.0+
 - Swift 5.0+
 
-## 安装
+## Installation
 
-MMTToolForNordicTool 可通过 [CocoaPods](https://cocoapods.org) 安装。只需在 Podfile 中添加：
+MMTToolForNordicTool is available through [CocoaPods](https://cocoapods.org). To install it, simply add the following line to your Podfile:
 
 ```ruby
 pod 'MMTToolForNordicTool'
 ```
 
-## 权限配置
+## Permission Configuration
 
-在 `Info.plist` 中添加以下权限：
+Add the following permissions to your `Info.plist`:
 
 ```xml
 <key>NSBluetoothAlwaysUsageDescription</key>
-<string>需要蓝牙权限来扫描和连接设备</string>
+<string>Need Bluetooth permission to scan and connect devices</string>
 <key>NSBluetoothPeripheralUsageDescription</key>
-<string>需要蓝牙权限来与设备通信</string>
+<string>Need Bluetooth permission to communicate with devices</string>
 ```
 
-## 项目结构
+## Project Structure
 
 ```
 MMTToolForNordicTool/
 ├── Example/
 │   └── MMTToolForNordicTool/
-│       ├── ViewController.swift       # 示例主视图控制器
-│       └── AppDelegate.swift          # 应用委托
+│       ├── ViewController.swift       # Example main view controller
+│       └── AppDelegate.swift          # Application delegate
 ├── MMTToolForNordicTool/
-│   ├── Classes/                       # 核心功能类
-│   └── MMTToolForNordicTool.h         # 主头文件
+│   ├── Classes/                       # Core functionality classes
+│   └── MMTToolForNordicTool.h         # Main header file
 ├── LICENSE
 └── README.md
 ```
 
-## 更新日志
+## Changelog
 
 ### Version 1.0.0
-- 实现蓝牙设备扫描功能
-- 实现设备连接和断开
-- 实现 MAC 地址提取和去重
-- 实现 RSSI 信号强度排序
-- 实现服务和特性扫描
-- 实现指令日志记录
-- 支持暗黑模式
-- 预留 DFU 升级接口
+- Implemented Bluetooth device scanning functionality
+- Implemented device connection and disconnection
+- Implemented MAC address extraction and deduplication
+- Implemented RSSI signal strength sorting
+- Implemented service and characteristic scanning
+- Implemented command log recording
+- Added dark mode support
+- Reserved DFU upgrade interface
 
-## 作者
+## Author
 
 NealWills, Donghn@maxeye.com
 
-## 许可证
+## License
 
-MMTToolForNordicTool 基于 MIT 许可证开源。详见 [LICENSE](LICENSE) 文件。
+MMTToolForNordicTool is available under the MIT license. See the [LICENSE](LICENSE) file for more info.
