@@ -10,10 +10,10 @@ import Foundation
 import Foundation
 
 
-class MMTToolForGoodixDFUFileManager: NSObject {
+class MMTToolForNordicDFUFileManager: NSObject {
     
     class func removeTempDir() {
-        let rootDir = MMTToolForGoodixDFUFileManager.getRootDirPath()
+        let rootDir = MMTToolForNordicDFUFileManager.getRootDirPath()
         if FileManager.default.fileExists(atPath: rootDir) {
             do {
                 try FileManager.default.removeItem(atPath: rootDir)
@@ -23,8 +23,9 @@ class MMTToolForGoodixDFUFileManager: NSObject {
         }
     }
     
+    @discardableResult
     class func copyDFUFileToTempDir(originPath: String, deviceMac: String) -> String {
-        let rootDir = MMTToolForGoodixDFUFileManager.getRootDirPath()
+        let rootDir = MMTToolForNordicDFUFileManager.getRootDirPath()
         let dfuDir = rootDir + deviceMac + "/"
         let dfuPath = dfuDir  + "dfufile"
         if FileManager.default.fileExists(atPath: dfuDir) {
@@ -46,6 +47,7 @@ class MMTToolForGoodixDFUFileManager: NSObject {
     /// 获取根目录
     /// 这里规定根目录为 /document/rootDir/
     /// - Returns: 根目录地址
+    @discardableResult
     class func getRootDirPath() -> String {
         let fileManager = FileManager.default
         let documentsDirectory = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -60,6 +62,7 @@ class MMTToolForGoodixDFUFileManager: NSObject {
 }
 
 fileprivate extension String {
+    
     subscript(_ range: Range<Int>) -> String {
         if range.lowerBound < 0 {
             return ""
@@ -73,6 +76,7 @@ fileprivate extension String {
         return subString(start: range.lowerBound, end: range.upperBound)
     }
     
+    @discardableResult
     func subString(start: Int, end: Int) -> String {
         var start = start
         start = start < 0 ? 0 : start
