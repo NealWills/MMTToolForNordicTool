@@ -1,0 +1,28 @@
+PODS:
+  - MMTToolForGoodixDFU (0.9.8)
+  - MMTToolForNordicTool (0.1.0):
+    - ZIPFoundation
+  - ZIPFoundation (0.9.20)
+
+DEPENDENCIES:
+  - MMTToolForGoodixDFU
+  - MMTToolForNordicTool (from `../`)
+  - ZIPFoundation
+
+SPEC REPOS:
+  trunk:
+    - MMTToolForGoodixDFU
+    - ZIPFoundation
+
+EXTERNAL SOURCES:
+  MMTToolForNordicTool:
+    :path: "../"
+
+SPEC CHECKSUMS:
+  MMTToolForGoodixDFU: 909201f7522b4934f2ccedad2d2b7d1969f20fd4
+  MMTToolForNordicTool: 60ed266833a256163b4c5ae61d0d26ee2bf21e39
+  ZIPFoundation: dfd3d681c4053ff7e2f7350bc4e53b5dba3f5351
+
+PODFILE CHECKSUM: 0437fdfd20ea887abb7e1abe6b8a675fcf1b20a0
+
+COCOAPODS: 1.16.2
